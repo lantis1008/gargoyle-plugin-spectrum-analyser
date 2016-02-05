@@ -1,5 +1,8 @@
 This plugin provides a way of visualising the wireless networks around the user in an effort to identify congested channels, in the context of the Gargoyle Router Firmware.
-The block list automatically updates every Sunday at 4:00am.
+
+There are two versions of this plugin available.
+- The main release (master branch, tags of the format "vX.X.X") is large and intended for installation on routers that have external usb storage for their plugins. This is the preferred method.
+- The minimal release (minimal branch, tags of the format "vX.X.Xm") is smaller, and links to a library file hosted online in order to minimize installation size. As a consequence, for the plugin to operate the router must have an internet connection in this mode.
 
 Install
 - To do.
