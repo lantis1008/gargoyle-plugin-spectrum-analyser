@@ -38,12 +38,12 @@
 <fieldset id="spectrum-fieldset">
 	<legend class="sectionheader"><%~ spectrum.Analyser %></legend>
 	
-	<select id="interface" onchange="resetPlot()">
+	<select id="interface" onchange="changeBand()">
 		<option value="wlan0">wlan0 2.4GHz</option>
 		<option value="wlan1">wlan1 5GHz</option>
 	</select>
 	<br/>
-	<svg id="spectrum_plot" width="500" height="400"></svg>
+	<svg id="spectrum_plot" width="500" height="500"></svg>
 </fieldset>
 
 
