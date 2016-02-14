@@ -7,8 +7,6 @@
  */
 var spectrum=new Object(); //part of i18n
 
-var updatePlot = null;
-var updateInProgress = false;
 var interfaces;
 var freq_low;
 var freq_high;
@@ -16,7 +14,7 @@ var detected;
 var band;
 
 // Xband = [[channel #],[centre freq],[low freq],[high freq]]
-var gband = [	
+var gband = [
 				[1,2,3,4,5,6,7,8,9,10,11,12,13,14],
 				[2.412,2.417,2.422,2.427,2.432,2.437,2.442,2.447,2.452,2.457,2.462,2.467,2.472,2.484],
 				[2.401,2.406,2.411,2.416,2.421,2.426,2.431,2.436,2.441,2.446,2.451,2.456,2.461,2.473],
@@ -41,9 +39,9 @@ function initialiseAll()
 		inames.push(interfaces[x][1]);
 	}
 	setAllowableSelections('interface', ivalues, inames);	//populate the dropdown list
-	
+
 	initialisePlots();
-	
+
 	getWifiData();
 }
 
@@ -62,7 +60,7 @@ function initialisePlots()
 		freq_low = 5.165;	//technically 5.170, but 5.165 graphs better
 		freq_high = 5.840;	//technically 5.835, but 5.840 graphs better
 	}
-	
+
 	//dummy code to setup a blank canvas before we populate any data
 	var spect = d3.select("#spectrum_plot"), 
 		WIDTH = 500, 
@@ -82,7 +80,7 @@ function initialisePlots()
 	spect.selectAll(".axis").remove();	//kill the old axes
 	spect.selectAll("path").remove();	//kill the old lines
 	spect.selectAll("rect").remove();	//kill the old legend
-	spect.selectAll("text").remove();	//kill the old legend text	
+	spect.selectAll("text").remove();	//kill the old legend text
 }
 
 function changeBand()
@@ -95,17 +93,17 @@ function parseInterfaces(lines)
 {
 	//if we have no interfaces detected, exit
 	if(lines.length == 0) { return []; }
-	
+
 	//otherwise, populate the data and assign correct frequency band
 	var interfaceData = [];
 	lineIndex = 0;
-	
+
 	//lines is of the format:	wlanX ##; wlanY ##; etc etc.
 	for(lineIndex=0; lineIndex < lines.length; lineIndex++)
 	{
 		var nextLine = lines[lineIndex];
 		var wlan = nextLine.split(" ");
-		
+
 		var interfaceid = wlan[0];
 		if(wlan[1] > 14)
 		{
@@ -115,7 +113,7 @@ function parseInterfaces(lines)
 		{
 			var interfaceband = "2.4GHz";
 		}
-		
+
 		interfaceData.push( [ interfaceid, interfaceband ] );
 	}
 	return interfaceData;
@@ -127,11 +125,11 @@ function getWifiData()
 	var Commands = [];
 	var parsedWifiData = [];
 	var selectedband = interfaces[document.getElementById("interface").selectedIndex][0];
-	
+
 	//scan command, substituting the correct WLAN
 	Commands.push("iw " + selectedband + " scan 2>&1 | awk -F'\\\n' '{print \"\\\"\"$0\"\\\"\" }'");
-	
-	var param = getParameterDefinition("commands", Commands.join("\n")) + "&" + getParameterDefinition("hash", document.cookie.replace(/^.*hash=/,"").replace(/[\t ;]+.*$/, ""));		
+
+	var param = getParameterDefinition("commands", Commands.join("\n")) + "&" + getParameterDefinition("hash", document.cookie.replace(/^.*hash=/,"").replace(/[\t ;]+.*$/, ""));	
 	var stateChangeFunction = function(req)
 	{
 		if (req.readyState == 4)
@@ -139,7 +137,15 @@ function getWifiData()
 			var shell_output = req.responseText.replace(/Success/, "");		//raw output from the shell
 			shell_output = shell_output.replace(/\"/g,"");					//remove any doubleq quotes
 			parsedWifiData = parseWifiData(shell_output);
-			generateGraphData(parsedWifiData);
+			if(parsedWifiData == -1)
+			{
+				alert(spectrum.Noscan);
+				plotall(parsedWifiData);
+			}
+			else
+			{
+				generateGraphData(parsedWifiData);
+			}
 		}
 	}
 	runAjax("POST", "utility/run_commands.sh", param, stateChangeFunction);
@@ -147,12 +153,12 @@ function getWifiData()
 
 function parseWifiData(rawScanOutput)
 {
-	if((rawScanOutput != null) && (rawScanOutput != "\n") && (rawScanOutput != "\r"))
+	if((rawScanOutput != null) && (rawScanOutput.indexOf("\n") != 0) && (rawScanOutput.indexOf("\r") != 0))
 	{
 		var parsed = [ [],[],[],[],[] ];
 		var cells = rawScanOutput.split(/BSS [A-Fa-f0-9]{2}[:]/g);
 		cells.shift(); //get rid of anything before first AP data
-			
+	
 		var getCellValues=function(id, cellLines)
 		{
 			var vals=[];
@@ -185,21 +191,21 @@ function parseWifiData(rawScanOutput)
 		{
 			var cellData  = cells.shift();
 			var cellLines = cellData.split(/[\r\n]+/);
-			
+
 			var ssid    = getCellValues("SSID", cellLines).shift();
 			var prichannel = getCellValues("primary channel", cellLines).shift();
 			var secchannel = getCellValues("secondary channel offset", cellLines).shift();
 			var sigStr = getCellValues("signal", cellLines).shift();
-
-
+			var vhtwidth = getCellValues("* channel width", cellLines).shift();
 
 			if(ssid != null && prichannel != null && secchannel != null && sigStr != null ) 
-			{			
+			{
 				parsed[0].push(ssid);
 				parsed[1].push(prichannel);
 				parsed[2].push(secchannel);
 				parsed[3].push(sigStr);
-				parsed[4].push( prichannel > 30 ? "5GHz" : "2.4GHz")
+				parsed[4].push(vhtwidth);
+				//parsed[4].push( prichannel > 30 ? "5GHz" : "2.4GHz")	we don't need this anymore
 			}
 		}
 		//check for duplicate data and append _# if necessary
@@ -230,6 +236,9 @@ function parseWifiData(rawScanOutput)
 function generateGraphData(detected)
 {
 	var plotdata = [];
+	var freqoffset = 0.001;	//for making the graphs look pretty
+	var htoffset = 4;	//for 802.11n channels
+	var vhtoffset = 12;	//for 802.11ac channels
 	if(band == "2.4GHz")
 	{
 		for(x = 0; x < detected[0].length; x++)
@@ -239,26 +248,25 @@ function generateGraphData(detected)
 			var secondary = detected[2][x];
 			var level = detected[3][x];
 			//var band = detected[4][x];
-			///////////////////////////////////////////////////THIS BIT NEEDS MORE USE CASES//////////////////////////////////////////		
 			if(secondary == "no secondary")
 			{
 				plotdata[x*4] = {"ssid":SSID, "level":"-100", "freq":getfreqData(channel,2)};
-				plotdata[x*4+1] = {"ssid":SSID, "level":level, "freq":(getfreqData(channel,2)+0.001)};
-				plotdata[x*4+2] = {"ssid":SSID, "level":level, "freq":(getfreqData(channel,3)-0.001)};
+				plotdata[x*4+1] = {"ssid":SSID, "level":level, "freq":(getfreqData(channel,2)+freqoffset)};
+				plotdata[x*4+2] = {"ssid":SSID, "level":level, "freq":(getfreqData(channel,3)-freqoffset)};
 				plotdata[x*4+3] = {"ssid":SSID, "level":"-100", "freq":getfreqData(channel,3)};
 			}
 			if(secondary == "above")
 			{
 				plotdata[x*4] = {"ssid":SSID, "level":"-100", "freq":getfreqData(channel,2)};
-				plotdata[x*4+1] = {"ssid":SSID, "level":level, "freq":(getfreqData(channel,2)+0.001)};
-				plotdata[x*4+2] = {"ssid":SSID, "level":level, "freq":(getfreqData((channel-(-4)),3)-0.001)};
-				plotdata[x*4+3] = {"ssid":SSID, "level":"-100", "freq":getfreqData((channel-(-4)),3)};
+				plotdata[x*4+1] = {"ssid":SSID, "level":level, "freq":(getfreqData(channel,2)+freqoffset)};
+				plotdata[x*4+2] = {"ssid":SSID, "level":level, "freq":(getfreqData((channel-(-htoffset)),3)-freqoffset)};
+				plotdata[x*4+3] = {"ssid":SSID, "level":"-100", "freq":getfreqData((channel-(-htoffset)),3)};
 			}
 			if(secondary == "below")
 			{
-				plotdata[x*4] = {"ssid":SSID, "level":"-100", "freq":getfreqData((channel-4),2)};
-				plotdata[x*4+1] = {"ssid":SSID, "level":level, "freq":(getfreqData((channel-4),2)+0.001)};
-				plotdata[x*4+2] = {"ssid":SSID, "level":level, "freq":(getfreqData(channel,3)-0.001)};
+				plotdata[x*4] = {"ssid":SSID, "level":"-100", "freq":getfreqData((channel-htoffset),2)};
+				plotdata[x*4+1] = {"ssid":SSID, "level":level, "freq":(getfreqData((channel-htoffset),2)+freqoffset)};
+				plotdata[x*4+2] = {"ssid":SSID, "level":level, "freq":(getfreqData(channel,3)-freqoffset)};
 				plotdata[x*4+3] = {"ssid":SSID, "level":"-100", "freq":getfreqData(channel,3)};
 			}
 		}
@@ -271,27 +279,37 @@ function generateGraphData(detected)
 			var channel = detected[1][x];
 			var secondary = detected[2][x];
 			var level = detected[3][x];
+			var vhtwidth = detected[4][x];
 			//var band = detected[4][x];
-			///////////////////////////////////////////////////THIS BIT NEEDS MORE USE CASES//////////////////////////////////////////		
 			if(secondary == "no secondary")
 			{
 				plotdata[x*4] = {"ssid":SSID, "level":"-100", "freq":getfreqData(channel,2)};
-				plotdata[x*4+1] = {"ssid":SSID, "level":level, "freq":(getfreqData(channel,2)+0.001)};
-				plotdata[x*4+2] = {"ssid":SSID, "level":level, "freq":(getfreqData(channel,3)-0.001)};
+				plotdata[x*4+1] = {"ssid":SSID, "level":level, "freq":(getfreqData(channel,2)+freqoffset)};
+				plotdata[x*4+2] = {"ssid":SSID, "level":level, "freq":(getfreqData(channel,3)-freqoffset)};
 				plotdata[x*4+3] = {"ssid":SSID, "level":"-100", "freq":getfreqData(channel,3)};
 			}
 			if(secondary == "above")
 			{
-				plotdata[x*4] = {"ssid":SSID, "level":"-100", "freq":getfreqData(channel,2)};
-				plotdata[x*4+1] = {"ssid":SSID, "level":level, "freq":(getfreqData(channel,2)+0.001)};
-				plotdata[x*4+2] = {"ssid":SSID, "level":level, "freq":(getfreqData((channel-(-4)),3)-0.001)};
-				plotdata[x*4+3] = {"ssid":SSID, "level":"-100", "freq":getfreqData((channel-(-4)),3)};
+				if(! vhtwidth)
+				{
+					plotdata[x*4] = {"ssid":SSID, "level":"-100", "freq":getfreqData(channel,2)};
+					plotdata[x*4+1] = {"ssid":SSID, "level":level, "freq":(getfreqData(channel,2)+freqoffset)};
+					plotdata[x*4+2] = {"ssid":SSID, "level":level, "freq":(getfreqData((channel-(-htoffset)),3)-freqoffset)};
+					plotdata[x*4+3] = {"ssid":SSID, "level":"-100", "freq":getfreqData((channel-(-htoffset)),3)};
+				}
+				else		//when 160MHz channels come along, we should look for vhtwidth = 2, and then grab the 2 lots of "centre frequency"s data. for now this is fine.
+				{
+					plotdata[x*4] = {"ssid":SSID, "level":"-100", "freq":getfreqData(channel,2)};
+					plotdata[x*4+1] = {"ssid":SSID, "level":level, "freq":(getfreqData(channel,2)+freqoffset)};
+					plotdata[x*4+2] = {"ssid":SSID, "level":level, "freq":(getfreqData((channel-(-vhtoffset)),3)-freqoffset)};
+					plotdata[x*4+3] = {"ssid":SSID, "level":"-100", "freq":getfreqData((channel-(-vhtoffset)),3)};
+				}
 			}
 			if(secondary == "below")
 			{
-				plotdata[x*4] = {"ssid":SSID, "level":"-100", "freq":getfreqData((channel-4),2)};
-				plotdata[x*4+1] = {"ssid":SSID, "level":level, "freq":(getfreqData((channel-4),2)+0.001)};
-				plotdata[x*4+2] = {"ssid":SSID, "level":level, "freq":(getfreqData(channel,3)-0.001)};
+				plotdata[x*4] = {"ssid":SSID, "level":"-100", "freq":getfreqData((channel-htoffset),2)};
+				plotdata[x*4+1] = {"ssid":SSID, "level":level, "freq":(getfreqData((channel-htoffset),2)+freqoffset)};
+				plotdata[x*4+2] = {"ssid":SSID, "level":level, "freq":(getfreqData(channel,3)-freqoffset)};
 				plotdata[x*4+3] = {"ssid":SSID, "level":"-100", "freq":getfreqData(channel,3)};
 			}
 		}
@@ -299,6 +317,7 @@ function generateGraphData(detected)
 	else
 	{
 		//something is wroooooooooooooooooong
+		plotdata = -1;
 	}
 	
 	plotall(plotdata);
@@ -335,8 +354,7 @@ function plotall(plotdata)
 	}
 	
 	var dataGroup = d3.nest()
-		.key(function(d) {return d.ssid;
-		})
+		.key(function(d) { return d.ssid; })
 		.entries(plotdata);				//break the data up into "keys" based on SSID which _should_ be unique (once i stuff around with them)
 	
 	var spect = d3.select("#spectrum_plot"), 
@@ -350,7 +368,6 @@ function plotall(plotdata)
 			left: 30
 		},
 		lSpace = WIDTH/dataGroup.length;	//set aside some space for the legend
-		
 		xScale = d3.scale.linear().range([MARGINS.left, WIDTH - MARGINS.right]).domain([freq_low,freq_high]),	//xscale width and range
 		yScale = d3.scale.linear().range([HEIGHT - MARGINS.bottom, MARGINS.top]).domain([-100,maxsig]),			//yscale height and range
 		xAxis = d3.svg.axis().scale(xScale),
@@ -395,12 +412,8 @@ function plotall(plotdata)
 		.call(yAxis);		//draw both axes
 		
 	var lineGen = d3.svg.line()
-			.x(function(d) {
-			return xScale(d.freq);
-			})
-			.y(function(d) {
-			return yScale(d.level);
-			});				//create a line generation function
+		.x(function(d) { return xScale(d.freq); })
+		.y(function(d) { return yScale(d.level); });				//create a line generation function
 		
 	dataGroup.forEach(function(d, i) {
 		//randcolour = "hsl(" + Math.random() * 360 + ",100%,50%)";	//doesn't guarantee different colours but it is an easy implementation
@@ -408,27 +421,27 @@ function plotall(plotdata)
 		legendmarkersize = 10;
 		
 		spect.append('svg:path')
-		.attr('class', 'gline')
-		.attr('id', 'tag'+d.key.replace(/\s+/g, ''))	//unique id for each line based on the ssid
-		.attr('d', lineGen(d.values))
-        .attr('stroke', randcolour)
-        .attr('stroke-width', 2)
-        .attr('fill', 'none');			//draw each line
+			.attr('class', 'gline')
+			.attr('id', 'tag'+d.key.replace(/\s+/g, ''))	//unique id for each line based on the ssid
+			.attr('d', lineGen(d.values))
+			.attr('stroke', randcolour)
+			.attr('stroke-width', 2)
+			.attr('fill', 'none');			//draw each line
 		
 		spect.append('rect')
-		  .attr('width', legendmarkersize)
-		  .attr('height', legendmarkersize)
-		  .attr("x", (lSpace / 2) + i * lSpace)		//evenly space little squares based on number of data points
-		  .attr("y", HEIGHT-legendmarkersize)
-		  .style('fill', randcolour)				//fill them the same colour as the line
-		  .style('stroke', randcolour)
-		  .on("mouseover", function() {
+			.attr('width', legendmarkersize)
+			.attr('height', legendmarkersize)
+			.attr("x", (lSpace / 2) + i * lSpace)		//evenly space little squares based on number of data points
+			.attr("y", HEIGHT-legendmarkersize)
+			.style('fill', randcolour)				//fill them the same colour as the line
+			.style('stroke', randcolour)
+			.on("mouseover", function() {
 				var existingcolour = d3.select("#tag"+d.key.replace(/\s+/g, ''))
 					.style("stroke");
 				d3.select("#tag"+d.key.replace(/\s+/g, ''))
 					.style("fill", existingcolour);
 			})
-		  .on("mouseout", function() {
+			.on("mouseout", function() {
                 d3.select("#tag"+d.key.replace(/\s+/g, ''))
 					.style("fill", "none")
 					.style("opacity", 1);

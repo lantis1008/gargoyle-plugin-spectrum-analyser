@@ -1,10 +1,12 @@
 #!/usr/bin/haserl
 <%
-	# This program is copyright © 2015 Michael Gray based on the work of Cezary Jackiewicz and is distributed under the terms of the GNU GPL 
+	# This program is copyright © 2015 Michael Gray and is distributed under the terms of the GNU GPL 
 	# version 2.0 with a special clarification/exception that permits adapting the program to 
 	# configure proprietary "back end" software provided that all modifications to the web interface
 	# itself remain covered by the GPL.
 	# See http://gargoyle-router.com/faq.html#qfoss for more information
+	# I'd also like to note and thank Mike Bostock for his work on D3.js which is the underlying
+	# graphing library in use for this plugin.
 	eval $( gargoyle_session_validator -c "$COOKIE_hash" -e "$COOKIE_exp" -a "$HTTP_USER_AGENT" -i "$REMOTE_ADDR" -r "login.sh" -t $(uci get gargoyle.global.session_timeout) -b "$COOKIE_browser_time"  )
 	gargoyle_header_footer -h -s "system" -p "spectrum_analyser" -c "internal.css" -j "spectrum_analyser.js" -z "spectrum.js"
 %>
@@ -20,7 +22,7 @@
 %>
 </script>
 <!--add in graphing library-->
-<script src="js/d3.min.js" charset="utf-8"></script>
+<script src="//d3js.org/d3.v3.min.js" charset="utf-8"></script>
 
 <!--Extra CSS Styling-->
 <style>
