@@ -60,7 +60,7 @@ if [ -z "$${IPKG_INSTROOT}" ]; then
 	}
 	uci set gargoyle.display.system_spect_analyser="$$menu_name"
 	uci set gargoyle.scripts.system_spect_analyser='spectrum_analyser.sh'
-	uci set gargoyle.system.spect_analyser='300'
+	uci set gargoyle.system.spect_analyser='355'
 	uci commit gargoyle
 fi
 endef
