@@ -67,14 +67,14 @@ function initialisePlots()
 
 	//dummy code to setup a blank canvas before we populate any data
 	var spect = d3.select("#spectrum_plot"), 
-		WIDTH = 500, 
+		WIDTH = 700, 
 		HEIGHT = 400, 
 		MARGINS = 
 		{ 
 			top: 20, 
 			right: 10, 
 			bottom: 50, 
-			left: 30
+			left: 35
 		},
 		xScale = d3.scale.linear().range([MARGINS.left, WIDTH - MARGINS.right]).domain([freq_low,freq_high]),
 		yScale = d3.scale.linear().range([HEIGHT - MARGINS.bottom, MARGINS.top]).domain([-100,0]),
@@ -374,14 +374,14 @@ function plotall(plotdata)
 		.entries(plotdata);				//break the data up into "keys" based on SSID which _should_ be unique (once i stuff around with them)
 	
 	var spect = d3.select("#spectrum_plot"), 
-		WIDTH = 500, 
+		WIDTH = 700, 
 		HEIGHT = 400, 
 		MARGINS = 
 		{ 
 			top: 20, 
 			right: 10, 
 			bottom: 50, 
-			left: 30
+			left: 35
 		},
 		lSpace = WIDTH/dataGroup.length;	//set aside some space for the legend
 		xScale = d3.scale.linear().range([MARGINS.left, WIDTH - MARGINS.right]).domain([freq_low,freq_high]),	//xscale width and range
