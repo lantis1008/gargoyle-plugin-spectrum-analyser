@@ -35,24 +35,6 @@
 		font-family: Lato;
 		font-size: 13px;
 	}
-	#main_external_container {
-		width:770px;
-	}
-	#main_internal_container {
-		width:742px;
-		background:url("themes/Gargoyle/images/main_internal.png") left;
-		background-size: 100% 100%;
-	}
-	#main_bottom {
-		width:770px;
-		background:url("themes/Gargoyle/images/main_bottom.png") top center no-repeat;
-		background-size: 100% 100%;
-	}
-	#main_top {
-		width:770px;
-		background:url("themes/Gargoyle/images/main_top.png") bottom center no-repeat;
-		background-size: 100% 100%;
-	}
 </style>
 
 <fieldset id="spectrum-fieldset">
@@ -63,7 +45,7 @@
 		<option value="wlan1">wlan1 5GHz</option>
 	</select>
 	<br/>
-	<svg id="spectrum_plot" width="700" height="500"></svg>
+	<svg id="spectrum_plot" width="500" height="500"></svg>
 </fieldset>
 
 
