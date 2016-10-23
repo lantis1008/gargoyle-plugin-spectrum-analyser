@@ -149,7 +149,7 @@ function parseWifiData(rawScanOutput)
 {
 	if((rawScanOutput != null) && (rawScanOutput.indexOf("\n") != 0) && (rawScanOutput.indexOf("\r") != 0))
 	{
-		var parsed = [ [],[],[],[],[],[],[],[],[] ];
+		var parsed = [ [],[],[],[],[],[],[],[],[],[] ];
 		//var cells = rawScanOutput.split(/BSS [A-Fa-f0-9]{2}[:]/g);
 		//above looks for bss then mac address but that is undesirable behaviour
 		//if we see IBSS or QBSS we might be in trouble...
@@ -261,6 +261,8 @@ function parseWifiData(rawScanOutput)
 		{
 			var cellData  = cells.shift();
 			var cellLines = cellData.split(/[\r\n]+/);
+			var htmode = 0;
+			var vhtmode = 0;
 
 			var bssid = getCellValues("BSSID", cellLines).shift();
 			var ssid = getCellValues("SSID", cellLines).shift();
@@ -271,6 +273,7 @@ function parseWifiData(rawScanOutput)
 				//we are in High Throughput
 				var prichannel = getCellValues("* primary channel", cellLines).shift();
 				var secchannel = getCellValues("secondary channel offset", cellLines).shift();
+				htmode = 1;
 			}
 			else
 			{
@@ -292,6 +295,7 @@ function parseWifiData(rawScanOutput)
 				var vhtwidth = getCellValues("* channel width", cellLines).shift();
 				var vhtseg1 = getCellValues("* center freq segment 1", cellLines).shift();
 				var vhtseg2 = getCellValues("* center freq segment 2", cellLines).shift();
+				vhtmode = 1;
 			}
 
 			if (! secchannel)
@@ -318,6 +322,8 @@ function parseWifiData(rawScanOutput)
 				parsed[5].push(vhtseg1);
 				parsed[6].push(vhtseg2);
 				parsed[7].push(bssid);
+				parsed[8].push(htmode);
+				parsed[9].push(vhtmode);
 				//parsed[8].push(encryption);
 				//parsed[4].push( prichannel > 30 ? "5GHz" : "2.4GHz")	we don't need this anymore
 			}
@@ -508,13 +514,15 @@ function generateTableData(detected)
 		var vhtseg1 = detected[5][x];
 		var vhtseg2 = detected[6][x];
 		var BSSID = detected[7][x];
+		var htmode = detected[8][x];
+		var vhtmode = detected[9][x];
 		//var encryption = detected[8][x];
 		
 		if(band == "2.4GHz")
 		{
 			if(secondary == "no secondary")					//20mhz
 			{
-				TableData.push([ SSID, BSSID, channel, "20MHz", "b,g", level ]);
+				TableData.push([ SSID, BSSID, channel, "20MHz", (htmode)?"b,g,n":"b,g", level ]);
 			}
 			else if(secondary == "above")						//40mhz
 			{
@@ -529,13 +537,13 @@ function generateTableData(detected)
 		{
 			if(secondary == "no secondary")					//20mhz
 			{
-				TableData.push([ SSID, BSSID, channel, "20MHz", "a", level ]);
+				TableData.push([ SSID, BSSID, channel, "20MHz", (htmode)?((vhtmode)?"a,n,ac":"a,n"):"a", level ]);
 			}
 			else if(secondary == "above")
 			{
 				if(! vhtwidth)								//40mhz
 				{
-					TableData.push([ SSID, BSSID, channel+"-"+(channel-(-htoffset)), "40MHz", "a,n", level ]);
+					TableData.push([ SSID, BSSID, channel+"-"+(channel-(-htoffset)), "40MHz", (vhtmode)?"a,n,ac":"a,n", level ]);
 				}
 				else
 				{
@@ -557,7 +565,7 @@ function generateTableData(detected)
 			{
 				if(! vhtwidth)								//40mhz
 				{
-					TableData.push([ SSID, BSSID, channel+"-"+(channel-htoffset), "40MHz", "a,n", level ]);
+					TableData.push([ SSID, BSSID, channel+"-"+(channel-htoffset), "40MHz", (vhtmode)?"a,n,ac":"a,n", level ]);
 				}
 				else
 				{
