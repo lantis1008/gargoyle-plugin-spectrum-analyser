@@ -501,7 +501,7 @@ function generateTableData(detected)
 	var x = 0;
 	var htoffset = 4;	//for 802.11n channels
 	var vhtoffset = 12;	//for 802.11ac channels, double this for vht160
-	var columnNames = ["SSID", "BSSID", "Channel", "Width", "Mode", "Signal"];
+	var columnNames = [ spectrum.SSID, spectrum.BSSID, spectrum.Channel, spectrum.Width, spectrum.Mode, spectrum.Signal];
 	var TableData = new Array();
 	
 	for(x = 0; x < detected[0].length; x++)
@@ -522,42 +522,42 @@ function generateTableData(detected)
 		{
 			if(secondary == "no secondary")					//20mhz
 			{
-				TableData.push([ SSID, BSSID, channel, "20MHz", (htmode)?"b,g,n":"b,g", level ]);
+				TableData.push([ SSID, BSSID, channel, "20MHz", (htmode)?"b,g,n":"b,g", level+"dBm" ]);
 			}
 			else if(secondary == "above")						//40mhz
 			{
-				TableData.push([ SSID, BSSID, channel+"-"+(channel-(-htoffset)), "40MHz", "b,g,n", level ]);
+				TableData.push([ SSID, BSSID, channel+"-"+(channel-(-htoffset)), "40MHz", "b,g,n", level+"dBm" ]);
 			}
 			else if(secondary == "below")						//40mhz
 			{
-				TableData.push([ SSID, BSSID, channel+"-"+(channel-htoffset), "40MHz", "b,g,n", level ]);
+				TableData.push([ SSID, BSSID, channel+"-"+(channel-htoffset), "40MHz", "b,g,n", level+"dBm" ]);
 			}
 		}
 		else if(band == "5GHz")
 		{
 			if(secondary == "no secondary")					//20mhz
 			{
-				TableData.push([ SSID, BSSID, channel, "20MHz", (htmode)?((vhtmode)?"a,n,ac":"a,n"):"a", level ]);
+				TableData.push([ SSID, BSSID, channel, "20MHz", (htmode)?((vhtmode)?"a,n,ac":"a,n"):"a", level+"dBm" ]);
 			}
 			else if(secondary == "above")
 			{
 				if(! vhtwidth)								//40mhz
 				{
-					TableData.push([ SSID, BSSID, channel+"-"+(channel-(-htoffset)), "40MHz", (vhtmode)?"a,n,ac":"a,n", level ]);
+					TableData.push([ SSID, BSSID, channel+"-"+(channel-(-htoffset)), "40MHz", (vhtmode)?"a,n,ac":"a,n", level+"dBm" ]);
 				}
 				else
 				{
 					if(! vhtseg2)							//80mhz
 					{
-						TableData.push([ SSID, BSSID, channel+"-"+(channel-(-vhtoffset)), "80MHz", "n,ac", level ]);
+						TableData.push([ SSID, BSSID, channel+"-"+(channel-(-vhtoffset)), "80MHz", "n,ac", level+"dBm" ]);
 					}
 					else if(Math.abs(vhtseg1 - vhtseg2) == 8)	//160mhz
 					{
-						TableData.push([ SSID, BSSID, (vhtseg2-(2+vhtoffset))+"-"+(vhtseg2-(-2-vhtoffset)), "160MHz", "n,ac", level ]);
+						TableData.push([ SSID, BSSID, (vhtseg2-(2+vhtoffset))+"-"+(vhtseg2-(-2-vhtoffset)), "160MHz", "n,ac", level+"dBm" ]);
 					}
 					else									//80+80mhz
 					{
-						TableData.push([ SSID, BSSID, ((vhtseg1-(0.5*vhtoffset))+"-"+(vhtseg1-(-0.5*vhtoffset)))+","+((vhtseg2-(0.5*vhtoffset))+"-"+(vhtseg2-(-0.5*vhtoffset))), "80+80MHz", "n,ac", level ]);
+						TableData.push([ SSID, BSSID, ((vhtseg1-(0.5*vhtoffset))+"-"+(vhtseg1-(-0.5*vhtoffset)))+","+((vhtseg2-(0.5*vhtoffset))+"-"+(vhtseg2-(-0.5*vhtoffset))), "80+80MHz", "n,ac", level+"dBm" ]);
 					}
 				}
 			}
@@ -565,21 +565,21 @@ function generateTableData(detected)
 			{
 				if(! vhtwidth)								//40mhz
 				{
-					TableData.push([ SSID, BSSID, channel+"-"+(channel-htoffset), "40MHz", (vhtmode)?"a,n,ac":"a,n", level ]);
+					TableData.push([ SSID, BSSID, channel+"-"+(channel-htoffset), "40MHz", (vhtmode)?"a,n,ac":"a,n", level+"dBm" ]);
 				}
 				else
 				{
 					if(! vhtseg2)							//80mhz
 					{
-						TableData.push([ SSID, BSSID, channel+"-"+(channel-vhtoffset), "80MHz", "n,ac", level ]);
+						TableData.push([ SSID, BSSID, channel+"-"+(channel-vhtoffset), "80MHz", "n,ac", level+"dBm" ]);
 					}
 					else if(Math.abs(vhtseg1 - vhtseg2) == 8)	//160mhz
 					{
-						TableData.push([ SSID, BSSID, (vhtseg2-(2+vhtoffset))+"-"+(vhtseg2-(-2-vhtoffset)), "160MHz", "n,ac", level ]);
+						TableData.push([ SSID, BSSID, (vhtseg2-(2+vhtoffset))+"-"+(vhtseg2-(-2-vhtoffset)), "160MHz", "n,ac", level+"dBm" ]);
 					}
 					else									//80+80mhz. i believe this is the same above or below
 					{
-						TableData.push([ SSID, BSSID, ((vhtseg1-(0.5*vhtoffset))+"-"+(vhtseg1-(-0.5*vhtoffset)))+","+((vhtseg2-(0.5*vhtoffset))+"-"+(vhtseg2-(-0.5*vhtoffset))), "80+80MHz", "n,ac", level ]);
+						TableData.push([ SSID, BSSID, ((vhtseg1-(0.5*vhtoffset))+"-"+(vhtseg1-(-0.5*vhtoffset)))+","+((vhtseg2-(0.5*vhtoffset))+"-"+(vhtseg2-(-0.5*vhtoffset))), "80+80MHz", "n,ac", level+"dBm" ]);
 					}
 				}
 			}
